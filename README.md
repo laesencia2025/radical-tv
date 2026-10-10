@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RADICAL TV - Tu Sistema Multimedia</title>
+  <!-- HLS.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0b0c10;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .player-card {
+      width: 100%;
+      max-width: 900px;
+      background: #1f2833;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(102, 252, 241, 0.2);
+      border: 1px solid #333;
+    }
+
+    .player-header {
+      padding: 20px 25px;
+      background: #121c24;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2c3e50;
+    }
+
+    .brand-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #66fcf1;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+    }
+
+    .brand-slogan {
+      font-size: 0.85rem;
+      color: #c5c6c7;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .badge-live {
+      background: #e74c3c;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    .badge-live .dot {
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; /* Aspect Ratio 16:9 */
+      background: #000;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .controls-bar {
+      padding: 15px 25px;
+      background: #121c24;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .control-btn {
+      background: none;
+      border: none;
+      color: #66fcf1;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .control-btn:hover {
+      color: #45a29e;
+      transform: scale(1.1);
+    }
+
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .volume-slider {
+      width: 100px;
+      accent-color: #66fcf1;
+      cursor: pointer;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      .brand-title { font-size: 1.3rem; }
+      .brand-slogan { font-size: 0.7rem; }
+      .volume-slider { width: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="player-card">
+    <!-- Header -->
+    <div class="player-header">
+      <div class="brand-container">
+        <div class="brand-title">Radical TV</div>
+        <div class="brand-slogan">Tu Sistema Multimedia</div>
+      </div>
+      <div class="badge-live">
+        <span class="dot"></span> EN VIVO
+      </div>
+    </div>
+
+    <!-- Video Player -->
+    <div class="video-wrapper">
+      <video id="video" controls autoplay muted playsinline></video>
+    </div>
+
+    <!-- Controls Footbar -->
+    <div class="controls-bar">
+      <div class="volume-container">
+        <button class="control-btn" id="playBtn"><i class="fas fa-play"></i></button>
+        <button class="control-btn" id="muteBtn"><i class="fas fa-volume-mute"></i></button>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.1" value="0.8">
+      </div>
+
+      <button class="control-btn" id="fullscreenBtn"><i class="fas fa-expand"></i></button>
+    </div>
+  </div>
+
+  <script>
+    const streamUrl = "https://vs20.live.opencaster.com/radicaltv_a215648f/index.m3u8";
+    const video = document.getElementById('video');
+    const playBtn = document.getElementById('playBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    // Inicializar HLS.js
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function () {
+        video.play().catch(() => {
+          console.log("Autoplay con audio bloqueado por el navegador; reproduciendo silenciado.");
+        });
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Soporte nativo para Safari / iOS
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', function () {
+        video.play();
+      });
+    }
+
+    // Controles personalizados
+    playBtn.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+        playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+      } else {
+        video.pause();
+        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+      }
+    });
+
+    video.addEventListener('play', () => {
+      playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    });
+
+    video.addEventListener('pause', () => {
+      playBtn.innerHTML = '<i class="fas fa-play"></i>';
+    });
+
+    muteBtn.addEventListener('click', () => {
+      video.muted = !video.muted;
+      updateMuteIcon();
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      video.volume = e.target.value;
+      video.muted = e.target.value == 0;
+      updateMuteIcon();
+    });
+
+    function updateMuteIcon() {
+      if (video.muted || video.volume === 0) {
+        muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+      } else if (video.volume < 0.5) {
+        muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
+      } else {
+        muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+      }
+    }
+
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        if (video.requestFullscreen) {
+          video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+          video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) {
+          video.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
